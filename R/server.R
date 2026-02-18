@@ -74,6 +74,7 @@ app_server <- function(input, output, session) {
       color_map = color_map,
       y_axis_label = if (nzchar(y_axis_label)) y_axis_label else "Measure value (lx)",
       legend_title = if (nzchar(legend_title)) legend_title else "Measure",
+      scene_label_height = input$scene_label_height,
       y_axis_min = input$y_axis_min,
       y_axis_max = input$y_axis_max,
       work1_on = isTRUE(input$work1_on) && !is.na(w1s) && !is.na(w1e),

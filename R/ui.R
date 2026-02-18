@@ -53,6 +53,12 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
               shiny::column(6, shiny::numericInput("y_axis_min", "Y-axis min", value = NA_real_)),
               shiny::column(6, shiny::numericInput("y_axis_max", "Y-axis max", value = NA_real_))
             ),
+            shiny::numericInput(
+              "scene_label_height",
+              "Scene label height (optional)",
+              value = NA_real_,
+              step = 1
+            ),
             shiny::textInput("legend_title", "Legend title", value = "Measure"),
             shiny::radioButtons(
               "line_geom",
