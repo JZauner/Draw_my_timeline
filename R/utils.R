@@ -180,14 +180,12 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
       out_time <- numeric(0)
       out_value <- numeric(0)
       out_segment <- integer(0)
-      out_order <- integer(0)
       segment_id <- 1L
 
       append_point <- function(time_value, y_value, segment_value) {
         out_time <<- c(out_time, time_value)
         out_value <<- c(out_value, y_value)
         out_segment <<- c(out_segment, segment_value)
-        out_order <<- c(out_order, length(out_order) + 1L)
       }
 
       append_point(times[[1]], values[[1]], segment_id)
@@ -224,8 +222,7 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
       tibble::tibble(
         Time = hms::as_hms(out_time %% day_seconds),
         Value = out_value,
-        .segment = paste0("seg_", out_segment),
-        .order = out_order
+        .segment = paste0("seg_", out_segment)
       )
     }) %>%
     dplyr::ungroup()
@@ -270,12 +267,12 @@ make_timeline_plot <- function(expanded_df, measure_cols,
     dplyr::group_by(.grp) %>%
     dplyr::summarise(
       Support = paste0(unique(Support), "."),
-      .time_sec = mean(.time_sec, na.rm = TRUE),
+      Time = hms::as_hms(mean(as.numeric(Time), na.rm = TRUE)),
       y = label_y,
       .groups = "drop"
     )
 
-  p <- ggplot2::ggplot(long, ggplot2::aes(x = .time_sec, y = Value, color = Measure, group = Measure)) +
+  p <- ggplot2::ggplot(long, ggplot2::aes(x = Time, y = Value, color = Measure, group = Measure)) +
     {
       if (work1_on) {
         ggplot2::annotate(
@@ -300,9 +297,9 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       if (identical(line_geom, "step")) {
         ggplot2::geom_step(direction = "hv", linewidth = 1.4, na.rm = TRUE)
       } else {
-        ggplot2::geom_path(
-          data = gliding_long %>% dplyr::arrange(Measure, .segment, .order),
-          ggplot2::aes(x = .time_sec, group = interaction(Measure, .segment)),
+        ggplot2::geom_line(
+          data = gliding_long,
+          ggplot2::aes(group = interaction(Measure, .segment)),
           linewidth = 1.4,
           na.rm = TRUE
         )
@@ -316,14 +313,14 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       plot.margin = ggplot2::margin(10, 20, 10, 10)
     ) +
     ggplot2::scale_color_manual(values = color_map, breaks = names(color_map)) +
-    ggplot2::scale_x_continuous(
+    ggplot2::scale_x_time(
       breaks = seq(0, 24, by = 2) * 3600,
-      labels = function(x) format(as.POSIXct(x %% (24 * 3600), origin = "1970-01-01", tz = "UTC"), "%H:%M")
+      labels = function(x) format(as.POSIXct(x, origin = "1970-01-01", tz = "UTC"), "%H:%M")
     ) +
     ggplot2::coord_cartesian(clip = "off", xlim = c(0, 24 * 3600), expand = FALSE) +
     ggplot2::geom_label(
       data = label_df,
-      ggplot2::aes(x = .time_sec, y = y, label = Support),
+      ggplot2::aes(x = Time, y = y, label = Support),
       size = 4.4,
       label.r = grid::unit(0.5, "lines"),
       fontface = "bold",
