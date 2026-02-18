@@ -155,11 +155,81 @@ build_color_map <- function(input, measure_cols) {
   )
 }
 
+# Build line coordinates for gliding changes and split transitions at midnight.
+build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
+  day_seconds <- 24 * 3600
+
+  if (is.null(anchor_time) || !is.finite(anchor_time)) {
+    anchor_time <- suppressWarnings(min(long_df$.time_sec, na.rm = TRUE))
+  }
+
+  long_df %>%
+    dplyr::mutate(
+      .adj_time = dplyr::if_else(.time_sec < anchor_time, .time_sec + day_seconds, .time_sec)
+    ) %>%
+    dplyr::arrange(Measure, .adj_time, .row_id, .part) %>%
+    dplyr::group_by(Measure) %>%
+    dplyr::group_modify(function(df_measure, ...) {
+      if (nrow(df_measure) == 0) {
+        return(df_measure)
+      }
+
+      times <- df_measure$.adj_time
+      values <- df_measure$Value
+
+      out_time <- numeric(0)
+      out_value <- numeric(0)
+      out_segment <- integer(0)
+      segment_id <- 1L
+
+      append_point <- function(time_value, y_value, segment_value) {
+        out_time <<- c(out_time, time_value)
+        out_value <<- c(out_value, y_value)
+        out_segment <<- c(out_segment, segment_value)
+      }
+
+      append_point(times[[1]], values[[1]], segment_id)
+
+      if (length(times) >= 2) {
+        for (i in seq_len(length(times) - 1)) {
+          t1 <- times[[i]]
+          t2 <- times[[i + 1]]
+          v1 <- values[[i]]
+          v2 <- values[[i + 1]]
+
+          crosses_midnight <- floor(t1 / day_seconds) < floor(t2 / day_seconds)
+
+          if (crosses_midnight) {
+            midnight_time <- day_seconds
+            fraction <- (midnight_time - t1) / (t2 - t1)
+            value_midnight <- v1 + (v2 - v1) * fraction
+
+            append_point(midnight_time, value_midnight, segment_id)
+            segment_id <- segment_id + 1L
+            append_point(0, value_midnight, segment_id)
+            append_point(t2, v2, segment_id)
+          } else {
+            append_point(t2, v2, segment_id)
+          }
+        }
+      }
+
+      tibble::tibble(
+        Time = hms::as_hms(dplyr::if_else(out_time > day_seconds, out_time - day_seconds, out_time)),
+        Value = out_value,
+        .segment = paste0("seg_", out_segment)
+      )
+    }) %>%
+    dplyr::ungroup()
+}
+
 # Create timeline plot using user-selected colors.
 make_timeline_plot <- function(expanded_df, measure_cols,
                                color_map,
                                y_axis_label = "Measure value (lx)",
                                legend_title = "Measure",
+                               y_axis_min = NULL,
+                               y_axis_max = NULL,
                                work1_on = TRUE,
                                work1_start = hms::as_hms("00:00:00"),
                                work1_end = hms::as_hms("07:00:00"),
@@ -171,6 +241,14 @@ make_timeline_plot <- function(expanded_df, measure_cols,
 
   long <- expanded_df %>%
     tidyr::pivot_longer(dplyr::all_of(measure_cols), names_to = "Measure", values_to = "Value")
+
+  first_start <- expanded_df %>%
+    dplyr::filter(.row_id == min(.row_id, na.rm = TRUE), .part %in% c("from", "point", "jump", "fallback")) %>%
+    dplyr::slice_head(n = 1) %>%
+    dplyr::pull(.time_sec)
+  anchor_time <- if (length(first_start) == 1 && is.finite(first_start)) first_start else suppressWarnings(min(long$.time_sec, na.rm = TRUE))
+
+  gliding_long <- build_gliding_plot_data(long, anchor_time = anchor_time)
 
   label_y <- mean(range(long$Value, na.rm = TRUE))
   label_df <- expanded_df %>%
@@ -208,7 +286,12 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       if (identical(line_geom, "step")) {
         ggplot2::geom_step(direction = "hv", linewidth = 1.4, na.rm = TRUE)
       } else {
-        ggplot2::geom_path(linewidth = 1.4, na.rm = TRUE)
+        ggplot2::geom_line(
+          data = gliding_long,
+          ggplot2::aes(group = interaction(Measure, .segment)),
+          linewidth = 1.4,
+          na.rm = TRUE
+        )
       }
     } +
     ggplot2::geom_point(size = 3.2, na.rm = TRUE) +
@@ -234,14 +317,26 @@ make_timeline_plot <- function(expanded_df, measure_cols,
     )
 
   ymax <- suppressWarnings(max(long$Value, na.rm = TRUE))
-  if (is.finite(ymax)) {
+  ymin <- suppressWarnings(min(long$Value, na.rm = TRUE))
+
+  if (is.finite(ymax) && is.finite(ymin)) {
+    y_min_use <- if (is.null(y_axis_min) || is.na(y_axis_min)) min(0, ymin) else y_axis_min
+    y_max_default <- ymax * 1.05
+    y_max_use <- if (is.null(y_axis_max) || is.na(y_axis_max)) y_max_default else y_axis_max
+
+    if (is.finite(y_min_use) && is.finite(y_max_use) && y_min_use < y_max_use) {
+      y_limits <- c(y_min_use, y_max_use)
+    } else {
+      y_limits <- c(min(0, ymin), y_max_default)
+    }
+
     p <- p + ggplot2::coord_cartesian(
       clip = "off",
       xlim = c(0, 24 * 3600),
-      ylim = c(0, ymax * 1.05),
+      ylim = y_limits,
       expand = FALSE
     )
-    p <- p + ggplot2::scale_y_continuous(breaks = pretty(c(0, ymax * 1.05), n = 7))
+    p <- p + ggplot2::scale_y_continuous(breaks = pretty(y_limits, n = 7))
   }
 
   p

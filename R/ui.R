@@ -49,6 +49,10 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
             ),
             shiny::tags$hr(),
             shiny::textInput("y_axis_label", "Y-axis label", value = "Measure value (lx)"),
+            shiny::fluidRow(
+              shiny::column(6, shiny::numericInput("y_axis_min", "Y-axis min", value = NA_real_)),
+              shiny::column(6, shiny::numericInput("y_axis_max", "Y-axis max", value = NA_real_))
+            ),
             shiny::textInput("legend_title", "Legend title", value = "Measure"),
             shiny::radioButtons(
               "line_geom",
@@ -66,7 +70,8 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
           bslib::card_body(
             shiny::numericInput("pdf_w", "Width (inch)", value = 15, min = 3, step = 0.5),
             shiny::numericInput("pdf_h", "Height (inch)", value = 5, min = 2, step = 0.5),
-            shiny::downloadButton("dl_pdf", "Download plot as PDF")
+            shiny::downloadButton("dl_pdf", "Download plot as PDF"),
+            shiny::div(style = "margin-top:8px;", shiny::downloadButton("dl_png", "Download plot as PNG"))
           )
         ),
         bslib::card(
