@@ -37,6 +37,25 @@ testthat::test_that("build_gliding_plot_data keeps midnight_to points after the 
   testthat::expect_equal(head(ordered$Value, 2), c(500, 500))
 })
 
+testthat::test_that("build_gliding_plot_data keeps exact midnight endpoint at 24:00", {
+  long_df <- tibble::tibble(
+    Measure = "mel EDI",
+    .time_sec = c(21 * 3600, 24 * 3600, 0, 2 * 3600),
+    .row_id = 1:4,
+    .part = c("from", "to", "midnight_from", "midnight_to"),
+    Value = c(500, 500, 300, 300)
+  )
+
+  gliding <- build_gliding_plot_data(long_df, anchor_time = 21 * 3600) %>%
+    dplyr::mutate(.time_sec = as.numeric(Time))
+
+  midnight_segment <- gliding %>%
+    dplyr::filter(.segment == "seg_1")
+
+  testthat::expect_true(any(midnight_segment$.time_sec == 24 * 3600))
+  testthat::expect_false(any(midnight_segment$.time_sec == 0))
+})
+
 testthat::test_that("make_timeline_plot accepts explicit scene label height", {
   expanded <- tibble::tibble(
     .row_id = c(1L, 1L, 2L, 2L),

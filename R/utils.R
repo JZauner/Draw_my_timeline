@@ -225,8 +225,14 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
         }
       }
 
+      wrapped_time <- dplyr::if_else(
+        out_time > day_seconds,
+        out_time %% day_seconds,
+        out_time
+      )
+
       tibble::tibble(
-        Time = hms::as_hms(out_time %% day_seconds),
+        Time = hms::as_hms(wrapped_time),
         Value = out_value,
         .segment = paste0("seg_", out_segment)
       )
