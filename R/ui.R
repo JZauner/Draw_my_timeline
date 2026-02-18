@@ -5,9 +5,9 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
     bslib::layout_sidebar(
       sidebar = bslib::sidebar(
         width = 360,
-        fixedRow(
-          style = "align-items:center; gap:12px;",
-              shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:200px; width:auto"),
+        shiny::div(
+          style = "display:flex; justify-content:center;",
+          shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:200px; width:auto;")
         ),
         bslib::card(
           bslib::card_header(shiny::tags$strong("Data source")),
@@ -22,7 +22,10 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
               condition = "input.data_source === 'excel'",
               shiny::fileInput("xlsx", "Choose Excel file", accept = c(".xlsx")),
               shiny::uiOutput("sheet_ui"),
-              shiny::div(style = "margin-top:8px;", shiny::downloadButton("download_example", "Download example Excel", stlye = "width:100%;"))
+              shiny::div(
+                style = "margin-top:8px;",
+                shiny::downloadButton("download_example", "Download example Excel", style = "width:100%;")
+              )
             ),
             shiny::conditionalPanel(
               condition = "input.data_source === 'manual'",
@@ -47,6 +50,13 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
             shiny::tags$hr(),
             shiny::textInput("y_axis_label", "Y-axis label", value = "Measure value (lx)"),
             shiny::textInput("legend_title", "Legend title", value = "Measure"),
+            shiny::radioButtons(
+              "line_geom",
+              "Line style",
+              choices = c("Step" = "step", "Path" = "path"),
+              selected = "step",
+              inline = TRUE
+            ),
             shiny::tags$hr(),
             shiny::uiOutput("color_ui")
           )

@@ -165,7 +165,10 @@ make_timeline_plot <- function(expanded_df, measure_cols,
                                work1_end = hms::as_hms("07:00:00"),
                                work2_on = TRUE,
                                work2_start = hms::as_hms("20:00:00"),
-                               work2_end = hms::as_hms("23:59:00")) {
+                               work2_end = hms::as_hms("23:59:00"),
+                               line_geom = c("step", "path")) {
+  line_geom <- rlang::arg_match(line_geom)
+
   long <- expanded_df %>%
     tidyr::pivot_longer(dplyr::all_of(measure_cols), names_to = "Measure", values_to = "Value")
 
@@ -201,7 +204,13 @@ make_timeline_plot <- function(expanded_df, measure_cols,
         )
       }
     } +
-    ggplot2::geom_line(direction = "vh", linewidth = 1.4, na.rm = TRUE) +
+    {
+      if (identical(line_geom, "step")) {
+        ggplot2::geom_step(direction = "hv", linewidth = 1.4, na.rm = TRUE)
+      } else {
+        ggplot2::geom_path(linewidth = 1.4, na.rm = TRUE)
+      }
+    } +
     ggplot2::geom_point(size = 3.2, na.rm = TRUE) +
     ggplot2::labs(x = NULL, y = y_axis_label, color = legend_title) +
     cowplot::theme_cowplot(font_size = 16) +

@@ -1,9 +1,14 @@
 app_server <- function(input, output, session) {
   manual_data <- manual_timeline_server("manual")
+  example_xlsx_path <- "Examples.xlsx"
 
   xlsx_path <- shiny::reactive({
-    shiny::req(input$xlsx)
-    input$xlsx$datapath
+    if (!is.null(input$xlsx$datapath) && nzchar(input$xlsx$datapath)) {
+      return(input$xlsx$datapath)
+    }
+
+    shiny::req(file.exists(example_xlsx_path))
+    example_xlsx_path
   })
 
   sheets <- shiny::reactive({
@@ -74,7 +79,8 @@ app_server <- function(input, output, session) {
       work1_end = w1e,
       work2_on = isTRUE(input$work2_on) && !is.na(w2s) && !is.na(w2e),
       work2_start = w2s,
-      work2_end = w2e
+      work2_end = w2e,
+      line_geom = input$line_geom %||% "step"
     )
   })
 
