@@ -158,6 +158,8 @@ prepare_excel_by_position <- function(df) {
 # Create timeline plot using user-selected colors.
 make_timeline_plot <- function(expanded_df, measure_cols,
                                color_map,
+                               y_axis_label = "Measure value (lx)",
+                               legend_title = "Measure",
                                work1_on = TRUE,
                                work1_start = hms::as_hms("00:00:00"),
                                work1_end = hms::as_hms("07:00:00"),
@@ -201,7 +203,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
     } +
     geom_step(direction = "vh", linewidth = 1.4, na.rm = TRUE) +
     geom_point(size = 3.2, na.rm = TRUE) +
-    labs(x = NULL, y = "Measure value (lx)") +
+    labs(x = NULL, y = y_axis_label, color = legend_title) +
     theme_cowplot(font_size = 16) +
     theme(
       legend.position = "bottom",
@@ -242,7 +244,7 @@ manual_timeline_server <- function(id) {
     manual_data <- reactiveVal(NULL)
 
     default_csv <- paste(
-      "Support,Begin,End,Ambient,Task",
+      "Scene,Begin,End,Ambient,Task",
       "Scene A,00:00,07:00,10,500",
       "Scene B,07:00,20:00,50,700",
       "Scene C,20:00,23:59,10,500",
@@ -255,7 +257,7 @@ manual_timeline_server <- function(id) {
         textInput(session$ns("manual_project"), "Project name", value = "Manual timeline"),
         tags$p(
           "Provide comma-separated values with at least the columns:",
-          tags$code("Support, Begin, End"),
+          tags$code("Scene, Begin, End"),
           ". Additional numeric columns are plotted as measures."
         ),
         textAreaInput(
@@ -291,16 +293,17 @@ manual_timeline_server <- function(id) {
         return()
       }
 
-      required_cols <- c("Support", "Begin", "End")
+      support_col <- if ("Scene" %in% names(parsed)) "Scene" else "Support"
+      required_cols <- c(support_col, "Begin", "End")
       if (!all(required_cols %in% names(parsed))) {
-        showNotification("CSV must contain columns: Support, Begin, End.", type = "error")
+        showNotification("CSV must contain columns: Scene, Begin, End.", type = "error")
         return()
       }
 
       prepared <- tryCatch(
         expand_support_points(
           parsed,
-          col_support = "Support",
+          col_support = support_col,
           col_begin = "Begin",
           col_end = "End"
         ),
@@ -326,6 +329,8 @@ manual_timeline_server <- function(id) {
 }
 
 logo_src <- if (file.exists("www/logo.png")) "logo.png" else "logo.svg"
+repo_url <- "https://github.com/Draw_my_timeline"
+issues_url <- paste0(repo_url, "/issues")
 
 ui <- page_fillable(
   theme = bs_theme(version = 5, bootswatch = "flatly"),
@@ -334,13 +339,17 @@ ui <- page_fillable(
     sidebar = sidebar(
       width = 360,
       card(
-        card_header(tags$strong("Data source")),
         card_body(
           div(
-            style = "display:flex; align-items:center; gap:12px; margin-bottom: 10px;",
+            style = "display:flex; align-items:center; gap:12px;",
             tags$img(src = logo_src, alt = "Application logo", style = "height:48px; width:auto;"),
             tags$div(tags$strong("Draw My Timeline"))
-          ),
+          )
+        )
+      ),
+      card(
+        card_header(tags$strong("Data source")),
+        card_body(
           radioButtons(
             "data_source",
             "Use data from",
@@ -350,15 +359,15 @@ ui <- page_fillable(
           conditionalPanel(
             condition = "input.data_source === 'excel'",
             fileInput("xlsx", "Choose Excel file", accept = c(".xlsx")),
-            uiOutput("sheet_ui")
+            uiOutput("sheet_ui"),
+            br(),
+            downloadButton("download_example", "Download example Excel")
           ),
           conditionalPanel(
             condition = "input.data_source === 'manual'",
             actionButton("manual-open_modal", "Create custom timeline", class = "btn-secondary")
           ),
-          br(), br(),
-          downloadButton("download_example", "Download example Excel"),
-          br(), br(),
+          br(),
           textInput("project_name", "Project name", value = "")
         )
       ),
@@ -376,6 +385,9 @@ ui <- page_fillable(
             column(6, textInput("work2_end", "End 2 (HH:MM)", value = "23:59"))
           ),
           tags$hr(),
+          textInput("y_axis_label", "Y-axis label", value = "Measure value (lx)"),
+          textInput("legend_title", "Legend title", value = "Measure"),
+          tags$hr(),
           uiOutput("color_ui")
         )
       ),
@@ -385,6 +397,14 @@ ui <- page_fillable(
           numericInput("pdf_w", "Width (inch)", value = 15, min = 3, step = 0.5),
           numericInput("pdf_h", "Height (inch)", value = 5, min = 2, step = 0.5),
           downloadButton("dl_pdf", "Download plot as PDF")
+        )
+      ),
+      card(
+        card_header(tags$strong("About")),
+        card_body(
+          tags$p("License: MIT"),
+          tags$p(tags$a(href = repo_url, target = "_blank", "GitHub repository")),
+          tags$p(tags$a(href = issues_url, target = "_blank", "Report a bug"))
         )
       )
     ),
@@ -460,7 +480,7 @@ server <- function(input, output, session) {
       h5("Measure colors"),
       lapply(seq_along(prep$measure_cols), function(i) {
         measure <- prep$measure_cols[i]
-        input_id <- paste0("col_", make.names(measure))
+        input_id <- paste0("col_", i)
         div(
           style = "margin-bottom:8px;",
           tags$label(`for` = input_id, paste0(measure, ":")),
@@ -483,17 +503,25 @@ server <- function(input, output, session) {
     w2s <- parse_time_hms(input$work2_start)
     w2e <- parse_time_hms(input$work2_end)
 
+    default_palette <- c(normalize_hex_color("gold1"), normalize_hex_color("#1D63DC"))
+    defaults <- rep(default_palette, length.out = length(prep$measure_cols))
+
     color_map <- stats::setNames(
-      vapply(prep$measure_cols, function(measure) {
-        input[[paste0("col_", make.names(measure))]] %||% normalize_hex_color("gold1")
+      vapply(seq_along(prep$measure_cols), function(i) {
+        input[[paste0("col_", i)]] %||% defaults[i]
       }, FUN.VALUE = character(1)),
       prep$measure_cols
     )
+
+    y_axis_label <- trimws(input$y_axis_label)
+    legend_title <- trimws(input$legend_title)
 
     make_timeline_plot(
       expanded_df = prep$data,
       measure_cols = prep$measure_cols,
       color_map = color_map,
+      y_axis_label = if (nzchar(y_axis_label)) y_axis_label else "Measure value (lx)",
+      legend_title = if (nzchar(legend_title)) legend_title else "Measure",
       work1_on = isTRUE(input$work1_on) && !is.na(w1s) && !is.na(w1e),
       work1_start = w1s,
       work1_end = w1e,
