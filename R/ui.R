@@ -2,39 +2,53 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
   bslib::page_fillable(
     theme = bslib::bs_theme(version = 5, bootswatch = "cosmo"),
     title = "Draw My Timeline",
+    fillable = TRUE,
+    gap = "1rem",
+    bslib::card(
+      full_screen = FALSE,
+      bslib::card_body(
+        class = "py-3",
+        bslib::layout_columns(
+          col_widths = c(4, 8),
+          row_heights = "auto",
+          shiny::div(
+            style = "display:flex; justify-content:center; align-items:center; height:100%;",
+            shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:150px; width:auto;")
+          ),
+          bslib::card(
+            bslib::card_header(shiny::tags$strong("Data source")),
+            bslib::card_body(
+              shiny::radioButtons(
+                "data_source",
+                "Use data from",
+                choices = c("Excel file" = "excel", "Custom timeline" = "manual"),
+                selected = "excel"
+              ),
+              shiny::conditionalPanel(
+                condition = "input.data_source === 'excel'",
+                shiny::fileInput("xlsx", "Choose Excel file", accept = c(".xlsx")),
+                shiny::uiOutput("sheet_ui"),
+                shiny::div(
+                  style = "margin-top:8px;",
+                  shiny::downloadButton("download_example", "Download example Excel", style = "width:100%;")
+                )
+              ),
+              shiny::conditionalPanel(
+                condition = "input.data_source === 'manual'",
+                shiny::div(style = "margin-top:8px;", shiny::actionButton("manual-open_modal", "Create custom timeline", class = "btn-secondary", width = "100%"))
+              ),
+              shiny::div(style = "margin-top:12px;", shiny::textInput("project_name", "Project name", value = ""))
+            )
+          )
+        )
+      )
+    ),
     bslib::layout_sidebar(
+      fillable = TRUE,
       sidebar = bslib::sidebar(
         width = 360,
-        shiny::div(
-          style = "display:flex; justify-content:center;",
-          shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:200px; width:auto;")
-        ),
         bslib::card(
-          bslib::card_header(shiny::tags$strong("Data source")),
-          bslib::card_body(
-            shiny::radioButtons(
-              "data_source",
-              "Use data from",
-              choices = c("Excel file" = "excel", "Custom timeline" = "manual"),
-              selected = "excel"
-            ),
-            shiny::conditionalPanel(
-              condition = "input.data_source === 'excel'",
-              shiny::fileInput("xlsx", "Choose Excel file", accept = c(".xlsx")),
-              shiny::uiOutput("sheet_ui"),
-              shiny::div(
-                style = "margin-top:8px;",
-                shiny::downloadButton("download_example", "Download example Excel", style = "width:100%;")
-              )
-            ),
-            shiny::conditionalPanel(
-              condition = "input.data_source === 'manual'",
-              shiny::div(style = "margin-top:8px;", shiny::actionButton("manual-open_modal", "Create custom timeline", class = "btn-secondary", width = "100%"))
-            ),
-            shiny::div(style = "margin-top:12px;", shiny::textInput("project_name", "Project name", value = ""))
-          )
-        ),
-        bslib::card(
+          full_screen = FALSE,
           bslib::card_header(shiny::tags$strong("Plot settings")),
           bslib::card_body(
             shiny::checkboxInput("work1_on", "Show block 1", value = TRUE),
@@ -70,55 +84,10 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
             shiny::tags$hr(),
             shiny::uiOutput("color_ui")
           )
-        ),
-        bslib::card(
-          bslib::card_header(shiny::tags$strong("PDF export")),
-          bslib::card_body(
-            shiny::numericInput("pdf_w", "Width (inch)", value = 15, min = 3, step = 0.5),
-            shiny::numericInput("pdf_h", "Height (inch)", value = 5, min = 2, step = 0.5),
-            shiny::downloadButton("dl_pdf", "Download plot as PDF"),
-            shiny::downloadButton("dl_png", "Download plot as PNG")
-          )
-        ),
-        bslib::card(
-          bslib::card_header(shiny::tags$strong("About")),
-          bslib::card_body(
-            shiny::tags$p(
-              shiny::icon("user"),
-              "Created by:", 
-                          shiny::tags$a(
-                            href = by_url,
-                            target = "_blank",
-                            " Johannes Zauner"
-                          )
-            ),
-            shiny::tags$p("License: ", 
-                          shiny::tags$a(
-                            href = "https://interoperable-europe.ec.europa.eu/licence/mit-license",
-                            target = "_blank",
-                            " MIT"
-                          )
-                          ),
-            shiny::tags$p(
-              shiny::tags$a(
-                href = repo_url,
-                target = "_blank",
-                shiny::icon("github"),
-                " GitHub repository"
-              )
-            ),
-            shiny::tags$p(
-              shiny::tags$a(
-                href = issues_url,
-                target = "_blank",
-                shiny::icon("bug"),
-                " Report a bug"
-              )
-            )
-          )
         )
       ),
       bslib::card(
+        class = "h-100",
         bslib::card_header(shiny::tags$strong("Timeline preview")),
         bslib::card_body(
           shiny::tags$p(
@@ -128,6 +97,56 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
           ),
           shiny::plotOutput("plot", height = "560px"),
           shiny::verbatimTextOutput("status")
+        )
+      )
+    ),
+    bslib::layout_columns(
+      col_widths = c(6, 6),
+      bslib::card(
+        bslib::card_header(shiny::tags$strong("Export")),
+        bslib::card_body(
+          shiny::numericInput("pdf_w", "Width (inch)", value = 15, min = 3, step = 0.5),
+          shiny::numericInput("pdf_h", "Height (inch)", value = 5, min = 2, step = 0.5),
+          shiny::downloadButton("dl_pdf", "Download plot as PDF"),
+          shiny::downloadButton("dl_png", "Download plot as PNG")
+        )
+      ),
+      bslib::card(
+        bslib::card_header(shiny::tags$strong("About")),
+        bslib::card_body(
+          shiny::tags$p(
+            shiny::icon("user"),
+            "Created by:",
+            shiny::tags$a(
+              href = by_url,
+              target = "_blank",
+              " Johannes Zauner"
+            )
+          ),
+          shiny::tags$p(
+            "License: ",
+            shiny::tags$a(
+              href = "https://interoperable-europe.ec.europa.eu/licence/mit-license",
+              target = "_blank",
+              " MIT"
+            )
+          ),
+          shiny::tags$p(
+            shiny::tags$a(
+              href = repo_url,
+              target = "_blank",
+              shiny::icon("github"),
+              " GitHub repository"
+            )
+          ),
+          shiny::tags$p(
+            shiny::tags$a(
+              href = issues_url,
+              target = "_blank",
+              shiny::icon("bug"),
+              " Report a bug"
+            )
+          )
         )
       )
     )
