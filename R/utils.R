@@ -207,7 +207,12 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
             append_point(midnight_time, value_midnight, segment_id)
             segment_id <- segment_id + 1L
             append_point(0, value_midnight, segment_id)
-            append_point(t2, v2, segment_id)
+
+            # Avoid creating a synthetic 0 -> 24:00 horizontal segment when
+            # the next point is exactly midnight (shifted to 24:00).
+            if (!isTRUE(all.equal(t2, midnight_time))) {
+              append_point(t2, v2, segment_id)
+            }
           } else {
             append_point(t2, v2, segment_id)
           }
@@ -215,7 +220,7 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
       }
 
       tibble::tibble(
-        Time = hms::as_hms(dplyr::if_else(out_time > day_seconds, out_time - day_seconds, out_time)),
+        Time = hms::as_hms(out_time %% day_seconds),
         Value = out_value,
         .segment = paste0("seg_", out_segment)
       )
@@ -228,6 +233,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
                                color_map,
                                y_axis_label = "Measure value (lx)",
                                legend_title = "Measure",
+                               scene_label_height = NULL,
                                y_axis_min = NULL,
                                y_axis_max = NULL,
                                work1_on = TRUE,
@@ -250,7 +256,12 @@ make_timeline_plot <- function(expanded_df, measure_cols,
 
   gliding_long <- build_gliding_plot_data(long, anchor_time = anchor_time)
 
-  label_y <- mean(range(long$Value, na.rm = TRUE))
+  label_y_default <- mean(range(long$Value, na.rm = TRUE))
+  label_y <- if (is.null(scene_label_height) || !is.finite(scene_label_height)) {
+    label_y_default
+  } else {
+    scene_label_height
+  }
   label_df <- expanded_df %>%
     dplyr::mutate(.grp = cumsum(Support != dplyr::lag(Support, default = dplyr::first(Support)))) %>%
     dplyr::group_by(.grp) %>%
