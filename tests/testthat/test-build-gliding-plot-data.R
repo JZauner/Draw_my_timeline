@@ -108,3 +108,47 @@ testthat::test_that("make_timeline_plot accepts explicit scene label height", {
   testthat::expect_true(is.finite(label_idx))
   testthat::expect_equal(unique(p$layers[[label_idx]]$data$y), 333)
 })
+
+testthat::test_that("build_step_plot_data carries the pre-midnight value across midnight", {
+  long_df <- tibble::tibble(
+    Measure = "mel EDI",
+    .time_sec = c(21 * 3600, 23 * 3600, 0, 2 * 3600),
+    .row_id = c(1L, 1L, 2L, 2L),
+    .part = c("from", "to", "midnight_from", "midnight_to"),
+    Value = c(500, 500, 300, 300)
+  )
+
+  step_data <- build_step_plot_data(long_df, anchor_time = 21 * 3600) %>%
+    dplyr::mutate(.time_sec = as.numeric(Time))
+
+  midnight_values <- step_data %>%
+    dplyr::filter(.time_sec %in% c(0, 24 * 3600)) %>%
+    dplyr::pull(Value)
+
+  testthat::expect_true(length(midnight_values) >= 2)
+  testthat::expect_equal(unique(midnight_values), 500)
+})
+
+testthat::test_that("make_timeline_plot only draws points from original timestamps", {
+  expanded <- tibble::tibble(
+    .row_id = c(1L, 1L, 2L, 2L),
+    Support = c("1", "1", "2", "2"),
+    Time = hms::as_hms(c(22 * 3600, 23 * 3600, 0, 2 * 3600)),
+    .part = c("from", "to", "midnight_from", "midnight_to"),
+    .time_sec = as.numeric(Time),
+    `mel EDI` = c(100, 100, 200, 200)
+  )
+
+  p <- make_timeline_plot(
+    expanded_df = expanded,
+    measure_cols = "mel EDI",
+    color_map = c("mel EDI" = "#1D63DC"),
+    line_geom = "step"
+  )
+
+  point_idx <- which(vapply(p$layers, function(layer) inherits(layer$geom, "GeomPoint"), logical(1)))[1]
+  testthat::expect_true(is.finite(point_idx))
+
+  point_times <- as.numeric(p$layers[[point_idx]]$data$Time)
+  testthat::expect_setequal(point_times, c(22 * 3600, 23 * 3600))
+})
