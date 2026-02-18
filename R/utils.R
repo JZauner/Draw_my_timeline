@@ -222,7 +222,6 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
       }
 
       tibble::tibble(
-        .time_sec = out_time %% day_seconds,
         Time = hms::as_hms(out_time %% day_seconds),
         Value = out_value,
         .segment = paste0("seg_", out_segment),
