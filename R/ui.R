@@ -52,9 +52,9 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
             shiny::textInput("legend_title", "Legend title", value = "Measure"),
             shiny::radioButtons(
               "line_geom",
-              "Line style",
-              choices = c("Step" = "step", "Path" = "path"),
-              selected = "step",
+              "Scene transition",
+              choices = c("Step changes" = "step", "Gliding changes" = "path"),
+              selected = "path",
               inline = TRUE
             ),
             shiny::tags$hr(),
@@ -73,7 +73,7 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
           bslib::card_header(shiny::tags$strong("About")),
           bslib::card_body(
             shiny::tags$p(
-              shiny::icon("person"),
+              shiny::icon("user"),
               "Created by:", 
                           shiny::tags$a(
                             href = by_url,
