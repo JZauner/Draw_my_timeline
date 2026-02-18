@@ -196,33 +196,48 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
 
       append_point(times[[1]], values[[1]], segment_id)
 
-      if (length(times) >= 2) {
-        for (i in seq_len(length(times) - 1)) {
-          t1 <- times[[i]]
-          t2 <- times[[i + 1]]
-          v1 <- values[[i]]
-          v2 <- values[[i + 1]]
+      append_transition <- function(t1, t2, v1, v2) {
+        crosses_midnight <- floor(t1 / day_seconds) < floor(t2 / day_seconds)
 
-          crosses_midnight <- floor(t1 / day_seconds) < floor(t2 / day_seconds)
+        if (crosses_midnight) {
+          midnight_time <- day_seconds
+          fraction <- (midnight_time - t1) / (t2 - t1)
+          value_midnight <- v1 + (v2 - v1) * fraction
 
-          if (crosses_midnight) {
-            midnight_time <- day_seconds
-            fraction <- (midnight_time - t1) / (t2 - t1)
-            value_midnight <- v1 + (v2 - v1) * fraction
+          append_point(midnight_time, value_midnight, segment_id)
+          segment_id <<- segment_id + 1L
+          append_point(0, value_midnight, segment_id)
 
-            append_point(midnight_time, value_midnight, segment_id)
-            segment_id <- segment_id + 1L
-            append_point(0, value_midnight, segment_id)
-
-            # Avoid creating a synthetic 0 -> 24:00 horizontal segment when
-            # the next point is exactly midnight (shifted to 24:00).
-            if (!isTRUE(all.equal(t2, midnight_time))) {
-              append_point(t2, v2, segment_id)
-            }
-          } else {
+          # Avoid creating a synthetic 0 -> 24:00 horizontal segment when
+          # the next point is exactly midnight (shifted to 24:00).
+          if (!isTRUE(all.equal(t2, midnight_time))) {
             append_point(t2, v2, segment_id)
           }
+        } else {
+          append_point(t2, v2, segment_id)
         }
+      }
+
+      if (length(times) >= 2) {
+        for (i in seq_len(length(times) - 1)) {
+          append_transition(
+            t1 = times[[i]],
+            t2 = times[[i + 1]],
+            v1 = values[[i]],
+            v2 = values[[i + 1]]
+          )
+        }
+      }
+
+      # Close the daily loop for gliding lines by connecting the final point
+      # to the first point on the following day.
+      if (length(times) >= 2) {
+        append_transition(
+          t1 = times[[length(times)]],
+          t2 = times[[1]] + day_seconds,
+          v1 = values[[length(values)]],
+          v2 = values[[1]]
+        )
       }
 
       wrapped_time <- dplyr::if_else(

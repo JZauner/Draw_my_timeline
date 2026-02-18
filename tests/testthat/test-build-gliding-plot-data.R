@@ -64,6 +64,29 @@ testthat::test_that("build_gliding_plot_data keeps 24:00 at midnight without cre
   testthat::expect_true(all(segment_span$span < 24 * 3600))
 })
 
+testthat::test_that("build_gliding_plot_data closes the final segment back to the first point", {
+  long_df <- tibble::tibble(
+    Measure = "mel EDI",
+    .time_sec = c(6 * 3600, 12 * 3600, 18 * 3600),
+    .row_id = 1:3,
+    .part = c("from", "from", "from"),
+    Value = c(100, 200, 50)
+  )
+
+  gliding <- build_gliding_plot_data(long_df, anchor_time = 6 * 3600) %>%
+    dplyr::mutate(.time_sec = as.numeric(Time))
+
+  # The closing transition should create both midnight boundary points.
+  testthat::expect_true(any(gliding$.time_sec == 24 * 3600))
+  testthat::expect_true(any(gliding$.time_sec == 0))
+
+  # No segment should be reduced to a single point after wrapping.
+  point_count <- gliding %>%
+    dplyr::count(.segment, name = "n_points")
+
+  testthat::expect_true(all(point_count$n_points >= 2))
+})
+
 testthat::test_that("make_timeline_plot accepts explicit scene label height", {
   expanded <- tibble::tibble(
     .row_id = c(1L, 1L, 2L, 2L),
