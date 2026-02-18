@@ -7,7 +7,7 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
         width = 360,
         shiny::div(
           style = "display:flex; justify-content:center;",
-          shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:200px; width:auto;")
+          shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:220px; width:auto;")
         ),
         bslib::card(
           bslib::card_header(shiny::tags$strong("Data source")),
