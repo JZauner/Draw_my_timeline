@@ -139,6 +139,22 @@ expand_support_points <- function(df,
   list(data = expanded, measure_cols = measure_cols)
 }
 
+# Use first three Excel columns as Support/Begin/End, independent of header names.
+prepare_excel_by_position <- function(df) {
+  if (ncol(df) < 3) {
+    stop("Excel sheet must contain at least three columns (Support, Begin, End by position).")
+  }
+
+  col_ids <- names(df)[seq_len(3)]
+
+  expand_support_points(
+    df,
+    col_support = col_ids[[1]],
+    col_begin = col_ids[[2]],
+    col_end = col_ids[[3]]
+  )
+}
+
 # Create timeline plot using user-selected colors.
 make_timeline_plot <- function(expanded_df, measure_cols,
                                color_map,
@@ -309,6 +325,8 @@ manual_timeline_server <- function(id) {
   })
 }
 
+logo_src <- if (file.exists("www/logo.png")) "logo.png" else "logo.svg"
+
 ui <- page_fillable(
   theme = bs_theme(version = 5, bootswatch = "flatly"),
   title = "Draw My Timeline",
@@ -320,7 +338,7 @@ ui <- page_fillable(
         card_body(
           div(
             style = "display:flex; align-items:center; gap:12px; margin-bottom: 10px;",
-            tags$img(src = "logo.svg", alt = "Application logo", style = "height:48px; width:auto;"),
+            tags$img(src = logo_src, alt = "Application logo", style = "height:48px; width:auto;"),
             tags$div(tags$strong("Draw My Timeline"))
           ),
           radioButtons(
@@ -334,7 +352,10 @@ ui <- page_fillable(
             fileInput("xlsx", "Choose Excel file", accept = c(".xlsx")),
             uiOutput("sheet_ui")
           ),
-          actionButton("open_manual_modal", "Create custom timeline", class = "btn-secondary"),
+          conditionalPanel(
+            condition = "input.data_source === 'manual'",
+            actionButton("manual-open_modal", "Create custom timeline", class = "btn-secondary")
+          ),
           br(), br(),
           downloadButton("download_example", "Download example Excel"),
           br(), br(),
@@ -416,7 +437,7 @@ server <- function(input, output, session) {
   excel_prepared <- reactive({
     req(input$data_source == "excel", xlsx_path(), input$sheet)
     df <- read_excel(xlsx_path(), sheet = input$sheet)
-    expand_support_points(df)
+    prepare_excel_by_position(df)
   })
 
   active_prepared <- reactive({
