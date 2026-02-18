@@ -92,28 +92,28 @@ expand_support_points <- function(df,
 
     if (is.na(e)) {
       out_list[[i]] <- dplyr::bind_rows(
-        r %>% dplyr::mutate(Time = r$Begin, .part = "point")
+        r %>% dplyr::mutate(Time = r$Begin, .part = "point", .is_original_time = TRUE)
       )
     } else if (!is.na(b) && !is.na(e) && e == b) {
       # Identical start/end timestamps represent an instantaneous jump.
       out_list[[i]] <- dplyr::bind_rows(
-        r %>% dplyr::mutate(Time = r$Begin, .part = "jump")
+        r %>% dplyr::mutate(Time = r$Begin, .part = "jump", .is_original_time = TRUE)
       )
     } else if (!is.na(b) && e > b) {
       out_list[[i]] <- dplyr::bind_rows(
-        r %>% dplyr::mutate(Time = r$Begin, .part = "from"),
-        r %>% dplyr::mutate(Time = r$End, .part = "to")
+        r %>% dplyr::mutate(Time = r$Begin, .part = "from", .is_original_time = TRUE),
+        r %>% dplyr::mutate(Time = r$End, .part = "to", .is_original_time = TRUE)
       )
     } else if (!is.na(b) && !is.na(e) && e < b) {
       out_list[[i]] <- dplyr::bind_rows(
-        r %>% dplyr::mutate(Time = t0, .part = "midnight_from"),
-        r %>% dplyr::mutate(Time = r$End, .part = "midnight_to"),
-        r %>% dplyr::mutate(Time = r$Begin, .part = "from"),
-        r %>% dplyr::mutate(Time = t_last, .part = "to")
+        r %>% dplyr::mutate(Time = t0, .part = "midnight_from", .is_original_time = FALSE),
+        r %>% dplyr::mutate(Time = r$End, .part = "midnight_to", .is_original_time = TRUE),
+        r %>% dplyr::mutate(Time = r$Begin, .part = "from", .is_original_time = TRUE),
+        r %>% dplyr::mutate(Time = t_last, .part = "to", .is_original_time = FALSE)
       )
     } else {
       out_list[[i]] <- dplyr::bind_rows(
-        r %>% dplyr::mutate(Time = r$Begin, .part = "fallback")
+        r %>% dplyr::mutate(Time = r$Begin, .part = "fallback", .is_original_time = TRUE)
       )
     }
   }
@@ -395,8 +395,11 @@ make_timeline_plot <- function(expanded_df, measure_cols,
 
   gliding_long <- build_gliding_plot_data(long, anchor_time = anchor_time)
   step_long <- build_step_plot_data(long, anchor_time = anchor_time)
-  point_long <- long %>%
-    dplyr::filter(!.part %in% c("midnight_from", "midnight_to"))
+  point_long <- if (".is_original_time" %in% names(long)) {
+    long %>% dplyr::filter(.is_original_time)
+  } else {
+    long %>% dplyr::filter(!.part %in% c("midnight_from", "midnight_to"))
+  }
 
   label_y_default <- mean(range(long$Value, na.rm = TRUE))
   label_y <- if (is.null(scene_label_height) || !is.finite(scene_label_height)) {

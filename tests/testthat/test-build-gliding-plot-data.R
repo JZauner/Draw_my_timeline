@@ -152,3 +152,50 @@ testthat::test_that("make_timeline_plot only draws points from original timestam
   point_times <- as.numeric(p$layers[[point_idx]]$data$Time)
   testthat::expect_setequal(point_times, c(22 * 3600, 23 * 3600))
 })
+
+testthat::test_that("expand_support_points marks synthetic overnight boundary times", {
+  df <- tibble::tibble(
+    `Stützstelle / Lichtszene` = "1",
+    Beginn = "22:00",
+    Ende = "06:30",
+    `mel EDI` = 500
+  )
+
+  expanded <- expand_support_points(df)$data
+
+  testthat::expect_true(".is_original_time" %in% names(expanded))
+
+  time_map <- expanded %>%
+    dplyr::transmute(
+      .time_sec = as.numeric(Time),
+      .is_original_time
+    )
+
+  testthat::expect_true(all(time_map$.is_original_time[time_map$.time_sec %in% c(22 * 3600, 6.5 * 3600)]))
+  testthat::expect_true(all(!time_map$.is_original_time[time_map$.time_sec %in% c(0, 23 * 3600 + 59 * 60)]))
+})
+
+testthat::test_that("make_timeline_plot uses .is_original_time when available", {
+  expanded <- tibble::tibble(
+    .row_id = c(1L, 1L, 1L, 1L),
+    Support = rep("1", 4),
+    Time = hms::as_hms(c(0, 6.5 * 3600, 22 * 3600, 23 * 3600 + 59 * 60)),
+    .part = c("midnight_from", "midnight_to", "from", "to"),
+    .time_sec = as.numeric(Time),
+    .is_original_time = c(FALSE, TRUE, TRUE, FALSE),
+    `mel EDI` = c(100, 100, 200, 200)
+  )
+
+  p <- make_timeline_plot(
+    expanded_df = expanded,
+    measure_cols = "mel EDI",
+    color_map = c("mel EDI" = "#1D63DC"),
+    line_geom = "step"
+  )
+
+  point_idx <- which(vapply(p$layers, function(layer) inherits(layer$geom, "GeomPoint"), logical(1)))[1]
+  testthat::expect_true(is.finite(point_idx))
+
+  point_times <- as.numeric(p$layers[[point_idx]]$data$Time)
+  testthat::expect_setequal(point_times, c(6.5 * 3600, 22 * 3600))
+})
