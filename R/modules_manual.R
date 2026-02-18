@@ -4,10 +4,10 @@ manual_timeline_server <- function(id) {
     manual_data <- shiny::reactiveVal(NULL)
 
     default_csv <- paste(
-      "Scene,Begin,End,Ambient,Task",
-      "Scene A,00:00,07:00,10,500",
-      "Scene B,07:00,20:00,50,700",
-      "Scene C,20:00,23:59,10,500",
+      "Scene,Begin,End,mel EDI,Task illuminance",
+      "Scene A,00:00,07:00,100,500",
+      "Scene B,07:30,20:00,140,700",
+      "Scene C,20:15,23:59,100,500",
       sep = "\n"
     )
 

@@ -37,12 +37,12 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
         bslib::card(
           bslib::card_header(shiny::tags$strong("Plot settings")),
           bslib::card_body(
-            shiny::checkboxInput("work1_on", "Show work block 1", value = TRUE),
+            shiny::checkboxInput("work1_on", "Show block 1", value = TRUE),
             shiny::fluidRow(
               shiny::column(6, shiny::textInput("work1_start", "Start 1 (HH:MM)", value = "00:00")),
               shiny::column(6, shiny::textInput("work1_end", "End 1 (HH:MM)", value = "07:00"))
             ),
-            shiny::checkboxInput("work2_on", "Show work block 2", value = TRUE),
+            shiny::checkboxInput("work2_on", "Show block 2", value = TRUE),
             shiny::fluidRow(
               shiny::column(6, shiny::textInput("work2_start", "Start 2 (HH:MM)", value = "20:00")),
               shiny::column(6, shiny::textInput("work2_end", "End 2 (HH:MM)", value = "23:59"))
