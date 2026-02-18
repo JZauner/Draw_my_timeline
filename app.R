@@ -3,7 +3,6 @@
 
 library(shiny)
 library(bslib)
-library(readxl)
 library(dplyr)
 library(tidyr)
 library(stringr)
@@ -18,7 +17,15 @@ repo_url <- "https://github.com/JZauner/Draw_my_timeline"
 issues_url <- paste0(repo_url, "/issues")
 by <- "https://orcid.org/0000-0003-2171-4566"
 
-ui <- app_ui(logo_src = logo_src, repo_url = repo_url, issues_url = issues_url, by_url = by)
+excel_enabled <- is_excel_data_source_available("Examples.xlsx")
+
+ui <- app_ui(
+  logo_src = logo_src,
+  repo_url = repo_url,
+  issues_url = issues_url,
+  by_url = by,
+  excel_enabled = excel_enabled
+)
 server <- app_server
 
 shinyApp(ui, server)

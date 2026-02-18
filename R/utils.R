@@ -5,6 +5,11 @@
   if (is.null(x)) y else x
 }
 
+# Check whether Excel-based workflows are available in the current runtime.
+is_excel_data_source_available <- function(example_xlsx_path = "Examples.xlsx") {
+  requireNamespace("readxl", quietly = TRUE) && file.exists(example_xlsx_path)
+}
+
 # Convert common color names to hex values for HTML color inputs.
 normalize_hex_color <- function(color_name) {
   rgb_matrix <- grDevices::col2rgb(color_name)

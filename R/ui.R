@@ -1,4 +1,15 @@
-app_ui <- function(logo_src, repo_url, issues_url, by_url) {
+app_ui <- function(logo_src, repo_url, issues_url, by_url, excel_enabled = TRUE) {
+  source_choices <- c("Custom timeline" = "manual")
+  if (isTRUE(excel_enabled)) {
+    source_choices <- c("Excel file" = "excel", source_choices)
+  }
+
+  source_help <- if (isTRUE(excel_enabled)) {
+    "Upload an Excel file and choose a sheet, or create a custom timeline manually."
+  } else {
+    "Excel import is disabled in this runtime. Please use a custom timeline."
+  }
+
   bslib::page_fillable(
     theme = bslib::bs_theme(version = 5, bootswatch = "cosmo"),
     title = "Draw My Timeline",
@@ -15,9 +26,16 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
             shiny::radioButtons(
               "data_source",
               "Use data from",
-              choices = c("Excel file" = "excel", "Custom timeline" = "manual"),
-              selected = "excel"
+              choices = source_choices,
+              selected = unname(source_choices[[1]])
             ),
+            if (!isTRUE(excel_enabled)) {
+              shiny::tags$p(
+                style = "margin-top: 4px; color: #8a6d3b;",
+                shiny::icon("exclamation-triangle"),
+                " Excel import is currently unavailable."
+              )
+            },
             shiny::conditionalPanel(
               condition = "input.data_source === 'excel'",
               shiny::fileInput("xlsx", "Choose Excel file", accept = c(".xlsx")),
@@ -123,7 +141,7 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
         bslib::card_body(
           shiny::tags$p(
             shiny::tags$strong("How to use:"),
-            " Upload an Excel file and choose a sheet, or click 'Create custom timeline' to enter CSV data manually.",
+            paste0(" ", source_help),
             " Then adjust work blocks and colors, and export the result as PDF."
           ),
           shiny::plotOutput("plot", height = "560px"),

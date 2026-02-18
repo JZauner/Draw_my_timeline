@@ -199,3 +199,16 @@ testthat::test_that("make_timeline_plot uses .is_original_time when available", 
   point_times <- as.numeric(p$layers[[point_idx]]$data$Time)
   testthat::expect_setequal(point_times, c(6.5 * 3600, 22 * 3600))
 })
+
+testthat::test_that("is_excel_data_source_available is FALSE when example file is missing", {
+  testthat::expect_false(is_excel_data_source_available("definitely_missing.xlsx"))
+})
+
+testthat::test_that("is_excel_data_source_available checks readxl availability", {
+  tmp_xlsx <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(tmp_xlsx), add = TRUE)
+  file.create(tmp_xlsx)
+
+  expected <- requireNamespace("readxl", quietly = TRUE)
+  testthat::expect_identical(is_excel_data_source_available(tmp_xlsx), expected)
+})

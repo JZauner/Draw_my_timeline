@@ -1,6 +1,13 @@
 app_server <- function(input, output, session) {
   manual_data <- manual_timeline_server("manual")
   example_xlsx_path <- "Examples.xlsx"
+  excel_enabled <- is_excel_data_source_available(example_xlsx_path)
+
+  shiny::observe({
+    if (!isTRUE(excel_enabled) && !identical(input$data_source, "manual")) {
+      shiny::updateRadioButtons(session, "data_source", selected = "manual")
+    }
+  })
 
   xlsx_path <- shiny::reactive({
     if (!is.null(input$xlsx$datapath) && nzchar(input$xlsx$datapath)) {
@@ -12,7 +19,7 @@ app_server <- function(input, output, session) {
   })
 
   sheets <- shiny::reactive({
-    shiny::req(xlsx_path())
+    shiny::req(isTRUE(excel_enabled), xlsx_path())
     readxl::excel_sheets(xlsx_path())
   })
 
@@ -35,13 +42,13 @@ app_server <- function(input, output, session) {
   })
 
   excel_prepared <- shiny::reactive({
-    shiny::req(input$data_source == "excel", xlsx_path(), input$sheet)
+    shiny::req(isTRUE(excel_enabled), input$data_source == "excel", xlsx_path(), input$sheet)
     df <- readxl::read_excel(xlsx_path(), sheet = input$sheet)
     prepare_excel_by_position(df)
   })
 
   active_prepared <- shiny::reactive({
-    if (identical(input$data_source, "manual")) {
+    if (!isTRUE(excel_enabled) || identical(input$data_source, "manual")) {
       shiny::req(manual_data())
       manual_data()$prepared
     } else {
@@ -125,7 +132,8 @@ app_server <- function(input, output, session) {
   output$download_example <- shiny::downloadHandler(
     filename = function() "Examples.xlsx",
     content = function(file) {
-      file.copy("Examples.xlsx", file, overwrite = TRUE)
+      shiny::req(isTRUE(excel_enabled))
+      file.copy(example_xlsx_path, file, overwrite = TRUE)
     }
   )
 
