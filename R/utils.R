@@ -201,7 +201,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
         )
       }
     } +
-    ggplot2::geom_step(direction = "vh", linewidth = 1.4, na.rm = TRUE) +
+    ggplot2::geom_line(direction = "vh", linewidth = 1.4, na.rm = TRUE) +
     ggplot2::geom_point(size = 3.2, na.rm = TRUE) +
     ggplot2::labs(x = NULL, y = y_axis_label, color = legend_title) +
     cowplot::theme_cowplot(font_size = 16) +

@@ -13,11 +13,12 @@ library(cowplot)
 
 invisible(lapply(sort(list.files("R", pattern = "\\.R$", full.names = TRUE)), source))
 
-logo_src <- if (file.exists("www/logo.png")) "logo.png" else "logo.svg"
+logo_src <- "logo.png"
 repo_url <- "https://github.com/JZauner/Draw_my_timeline"
 issues_url <- paste0(repo_url, "/issues")
+by <- "https://orcid.org/0000-0003-2171-4566"
 
-ui <- app_ui(logo_src = logo_src, repo_url = repo_url, issues_url = issues_url)
+ui <- app_ui(logo_src = logo_src, repo_url = repo_url, issues_url = issues_url, by_url = by)
 server <- app_server
 
 shinyApp(ui, server)

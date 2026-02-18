@@ -1,18 +1,13 @@
-app_ui <- function(logo_src, repo_url, issues_url) {
-  shiny::page_fillable(
-    theme = bslib::bs_theme(version = 5, bootswatch = "flatly"),
+app_ui <- function(logo_src, repo_url, issues_url, by_url) {
+  bslib::page_fillable(
+    theme = bslib::bs_theme(version = 5, bootswatch = "cosmo"),
     title = "Draw My Timeline",
-    shiny::layout_sidebar(
+    bslib::layout_sidebar(
       sidebar = bslib::sidebar(
         width = 360,
-        bslib::card(
-          bslib::card_body(
-            shiny::div(
-              style = "display:flex; align-items:center; gap:12px;",
-              shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:72px; width:auto;"),
-              shiny::tags$div(shiny::tags$strong("Draw My Timeline"))
-            )
-          )
+        fixedRow(
+          style = "align-items:center; gap:12px;",
+              shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:200px; width:auto"),
         ),
         bslib::card(
           bslib::card_header(shiny::tags$strong("Data source")),
@@ -27,11 +22,11 @@ app_ui <- function(logo_src, repo_url, issues_url) {
               condition = "input.data_source === 'excel'",
               shiny::fileInput("xlsx", "Choose Excel file", accept = c(".xlsx")),
               shiny::uiOutput("sheet_ui"),
-              shiny::div(style = "margin-top:8px;", shiny::downloadButton("download_example", "Download example Excel"))
+              shiny::div(style = "margin-top:8px;", shiny::downloadButton("download_example", "Download example Excel", stlye = "width:100%;"))
             ),
             shiny::conditionalPanel(
               condition = "input.data_source === 'manual'",
-              shiny::div(style = "margin-top:8px;", shiny::actionButton("manual-open_modal", "Create custom timeline", class = "btn-secondary"))
+              shiny::div(style = "margin-top:8px;", shiny::actionButton("manual-open_modal", "Create custom timeline", class = "btn-secondary", width = "100%"))
             ),
             shiny::div(style = "margin-top:12px;", shiny::textInput("project_name", "Project name", value = ""))
           )
@@ -67,7 +62,22 @@ app_ui <- function(logo_src, repo_url, issues_url) {
         bslib::card(
           bslib::card_header(shiny::tags$strong("About")),
           bslib::card_body(
-            shiny::tags$p("License: MIT"),
+            shiny::tags$p(
+              shiny::icon("person"),
+              "Created by:", 
+                          shiny::tags$a(
+                            href = by_url,
+                            target = "_blank",
+                            " Johannes Zauner"
+                          )
+            ),
+            shiny::tags$p("License: ", 
+                          shiny::tags$a(
+                            href = "https://interoperable-europe.ec.europa.eu/licence/mit-license",
+                            target = "_blank",
+                            " MIT"
+                          )
+                          ),
             shiny::tags$p(
               shiny::tags$a(
                 href = repo_url,
