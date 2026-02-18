@@ -266,6 +266,107 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
     dplyr::ungroup()
 }
 
+# Build step coordinates that carry values through midnight without interpolation.
+build_step_plot_data <- function(long_df, anchor_time = NULL) {
+  day_seconds <- 24 * 3600
+
+  if (is.null(anchor_time) || !is.finite(anchor_time)) {
+    anchor_time <- suppressWarnings(min(long_df$.time_sec, na.rm = TRUE))
+  }
+
+  long_df %>%
+    dplyr::mutate(
+      .adj_time = dplyr::if_else(
+        .time_sec < anchor_time | (.time_sec == anchor_time & .part %in% c("midnight_from", "midnight_to")),
+        .time_sec + day_seconds,
+        .time_sec
+      )
+    ) %>%
+    dplyr::arrange(Measure, .adj_time, .row_id, .part) %>%
+    dplyr::group_by(Measure) %>%
+    dplyr::group_modify(function(df_measure, ...) {
+      if (nrow(df_measure) == 0) {
+        return(df_measure)
+      }
+
+      times <- df_measure$.adj_time
+      values <- df_measure$Value
+
+      out_time <- numeric(0)
+      out_value <- numeric(0)
+      out_segment <- integer(0)
+      segment_id <- 1L
+
+      append_point <- function(time_value, y_value, segment_value) {
+        out_time <<- c(out_time, time_value)
+        out_value <<- c(out_value, y_value)
+        out_segment <<- c(out_segment, segment_value)
+      }
+
+      append_point(times[[1]], values[[1]], segment_id)
+
+      append_transition <- function(t1, t2, v1, v2) {
+        crosses_midnight <- floor(t1 / day_seconds) < floor(t2 / day_seconds)
+
+        if (crosses_midnight) {
+          midnight_time <- day_seconds
+
+          append_point(midnight_time, v1, segment_id)
+          segment_id <<- segment_id + 1L
+          append_point(0, v1, segment_id)
+
+          # Avoid creating a synthetic 0 -> 24:00 horizontal segment when
+          # the next point is exactly midnight (shifted to 24:00).
+          if (!isTRUE(all.equal(t2, midnight_time))) {
+            append_point(t2, v2, segment_id)
+          }
+        } else {
+          append_point(t2, v2, segment_id)
+        }
+      }
+
+      if (length(times) >= 2) {
+        for (i in seq_len(length(times) - 1)) {
+          append_transition(
+            t1 = times[[i]],
+            t2 = times[[i + 1]],
+            v1 = values[[i]],
+            v2 = values[[i + 1]]
+          )
+        }
+      }
+
+      if (length(times) >= 2) {
+        append_transition(
+          t1 = times[[length(times)]],
+          t2 = times[[1]] + day_seconds,
+          v1 = values[[length(values)]],
+          v2 = values[[1]]
+        )
+      }
+
+      wrapped_time <- dplyr::if_else(
+        out_time > day_seconds,
+        out_time %% day_seconds,
+        out_time
+      )
+      segment_label <- paste0("seg_", out_segment)
+
+      wrapped_time <- dplyr::if_else(
+        wrapped_time == day_seconds & ave(wrapped_time == 0, segment_label, FUN = any),
+        0,
+        wrapped_time
+      )
+
+      tibble::tibble(
+        Time = hms::as_hms(wrapped_time),
+        Value = out_value,
+        .segment = segment_label
+      )
+    }) %>%
+    dplyr::ungroup()
+}
+
 # Create timeline plot using user-selected colors.
 make_timeline_plot <- function(expanded_df, measure_cols,
                                color_map,
@@ -293,6 +394,9 @@ make_timeline_plot <- function(expanded_df, measure_cols,
   anchor_time <- if (length(first_start) == 1 && is.finite(first_start)) first_start else suppressWarnings(min(long$.time_sec, na.rm = TRUE))
 
   gliding_long <- build_gliding_plot_data(long, anchor_time = anchor_time)
+  step_long <- build_step_plot_data(long, anchor_time = anchor_time)
+  point_long <- long %>%
+    dplyr::filter(!.part %in% c("midnight_from", "midnight_to"))
 
   label_y_default <- mean(range(long$Value, na.rm = TRUE))
   label_y <- if (is.null(scene_label_height) || !is.finite(scene_label_height)) {
@@ -310,7 +414,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       .groups = "drop"
     )
 
-  p <- ggplot2::ggplot(long, ggplot2::aes(x = Time, y = Value, color = Measure, group = Measure)) +
+  p <- ggplot2::ggplot() +
     {
       if (work1_on) {
         ggplot2::annotate(
@@ -333,17 +437,28 @@ make_timeline_plot <- function(expanded_df, measure_cols,
     } +
     {
       if (identical(line_geom, "step")) {
-        ggplot2::geom_step(direction = "hv", linewidth = 1.4, na.rm = TRUE)
+        ggplot2::geom_step(
+          data = step_long,
+          ggplot2::aes(x = Time, y = Value, color = Measure, group = interaction(Measure, .segment)),
+          direction = "hv",
+          linewidth = 1.4,
+          na.rm = TRUE
+        )
       } else {
         ggplot2::geom_line(
           data = gliding_long,
-          ggplot2::aes(group = interaction(Measure, .segment)),
+          ggplot2::aes(x = Time, y = Value, color = Measure, group = interaction(Measure, .segment)),
           linewidth = 1.4,
           na.rm = TRUE
         )
       }
     } +
-    ggplot2::geom_point(size = 3.2, na.rm = TRUE) +
+    ggplot2::geom_point(
+      data = point_long,
+      ggplot2::aes(x = Time, y = Value, color = Measure, group = Measure),
+      size = 3.2,
+      na.rm = TRUE
+    ) +
     ggplot2::labs(x = NULL, y = y_axis_label, color = legend_title) +
     cowplot::theme_cowplot(font_size = 16) +
     ggplot2::theme(
