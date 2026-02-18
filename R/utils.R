@@ -225,10 +225,27 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
         }
       }
 
+      wrapped_time <- dplyr::if_else(
+        out_time > day_seconds,
+        out_time %% day_seconds,
+        out_time
+      )
+      segment_label <- paste0("seg_", out_segment)
+
+      # Keep the right-edge midnight endpoint (24:00) for the segment that
+      # leads into midnight, but avoid pairing 0 and 24:00 in the same segment.
+      # When a segment already contains 0, its 24:00 points represent that same
+      # instant on the wrapped timeline and should be drawn at 0.
+      wrapped_time <- dplyr::if_else(
+        wrapped_time == day_seconds & ave(wrapped_time == 0, segment_label, FUN = any),
+        0,
+        wrapped_time
+      )
+
       tibble::tibble(
-        Time = hms::as_hms(out_time %% day_seconds),
+        Time = hms::as_hms(wrapped_time),
         Value = out_value,
-        .segment = paste0("seg_", out_segment)
+        .segment = segment_label
       )
     }) %>%
     dplyr::ungroup()
