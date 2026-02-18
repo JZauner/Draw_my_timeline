@@ -165,7 +165,13 @@ build_gliding_plot_data <- function(long_df, anchor_time = NULL) {
 
   long_df %>%
     dplyr::mutate(
-      .adj_time = dplyr::if_else(.time_sec < anchor_time, .time_sec + day_seconds, .time_sec)
+      # Keep post-midnight fragments (`midnight_*`) after the anchor point,
+      # even when their clock time equals the anchor (e.g., 11:00 -> next day).
+      .adj_time = dplyr::if_else(
+        .time_sec < anchor_time | (.time_sec == anchor_time & .part %in% c("midnight_from", "midnight_to")),
+        .time_sec + day_seconds,
+        .time_sec
+      )
     ) %>%
     dplyr::arrange(Measure, .adj_time, .row_id, .part) %>%
     dplyr::group_by(Measure) %>%

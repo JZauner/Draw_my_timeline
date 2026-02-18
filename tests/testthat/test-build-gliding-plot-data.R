@@ -17,6 +17,26 @@ testthat::test_that("build_gliding_plot_data avoids artificial 0-24h segment at 
   testthat::expect_true(all(segment_span$span < 24 * 3600))
 })
 
+testthat::test_that("build_gliding_plot_data keeps midnight_to points after the anchor tie", {
+  long_df <- tibble::tibble(
+    Measure = "mel EDI",
+    .time_sec = c(11 * 3600, 15 * 3600, 0, 11 * 3600),
+    .row_id = c(1L, 1L, 2L, 2L),
+    .part = c("from", "to", "midnight_from", "midnight_to"),
+    Value = c(500, 500, 300, 300)
+  )
+
+  gliding <- build_gliding_plot_data(long_df, anchor_time = 11 * 3600)
+
+  ordered <- gliding %>%
+    dplyr::mutate(.time_sec = as.numeric(Time)) %>%
+    dplyr::arrange(.segment, .time_sec)
+
+  # The pre-midnight support (500) should be drawn before the post-midnight
+  # continuation (300), avoiding a diagonal from 00:00 to 11:00.
+  testthat::expect_equal(head(ordered$Value, 2), c(500, 500))
+})
+
 testthat::test_that("make_timeline_plot accepts explicit scene label height", {
   expanded <- tibble::tibble(
     .row_id = c(1L, 1L, 2L, 2L),
