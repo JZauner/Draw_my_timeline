@@ -37,7 +37,7 @@ testthat::test_that("build_gliding_plot_data keeps midnight_to points after the 
   testthat::expect_equal(head(ordered$Value, 2), c(500, 500))
 })
 
-testthat::test_that("build_gliding_plot_data keeps exact midnight endpoint at 24:00", {
+testthat::test_that("build_gliding_plot_data keeps 24:00 at midnight without creating a path gap", {
   long_df <- tibble::tibble(
     Measure = "mel EDI",
     .time_sec = c(21 * 3600, 24 * 3600, 0, 2 * 3600),
@@ -54,6 +54,14 @@ testthat::test_that("build_gliding_plot_data keeps exact midnight endpoint at 24
 
   testthat::expect_true(any(midnight_segment$.time_sec == 24 * 3600))
   testthat::expect_false(any(midnight_segment$.time_sec == 0))
+
+  # The continuation segment should not include both 0 and 24:00, otherwise
+  # geom_path can draw a full-width line or create a visual discontinuity.
+  segment_span <- gliding %>%
+    dplyr::group_by(.segment) %>%
+    dplyr::summarise(span = diff(range(.time_sec)), .groups = "drop")
+
+  testthat::expect_true(all(segment_span$span < 24 * 3600))
 })
 
 testthat::test_that("make_timeline_plot accepts explicit scene label height", {
