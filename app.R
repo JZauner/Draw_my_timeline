@@ -12,7 +12,7 @@ library(hms)
 library(cowplot)
 
 invisible(lapply(sort(list.files("R", pattern = "\\.R$", full.names = TRUE)), source))
-
+#set up dependencies
 logo_src <- "logo.png"
 repo_url <- "https://github.com/JZauner/Draw_my_timeline"
 issues_url <- paste0(repo_url, "/issues")
