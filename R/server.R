@@ -74,6 +74,8 @@ app_server <- function(input, output, session) {
       color_map = color_map,
       y_axis_label = if (nzchar(y_axis_label)) y_axis_label else "Measure value (lx)",
       legend_title = if (nzchar(legend_title)) legend_title else "Measure",
+      y_axis_min = input$y_axis_min,
+      y_axis_max = input$y_axis_max,
       work1_on = isTRUE(input$work1_on) && !is.na(w1s) && !is.na(w1e),
       work1_start = w1s,
       work1_end = w1e,
@@ -123,6 +125,25 @@ app_server <- function(input, output, session) {
     filename = function() "Examples.xlsx",
     content = function(file) {
       file.copy("Examples.xlsx", file, overwrite = TRUE)
+    }
+  )
+
+  output$dl_png <- shiny::downloadHandler(
+    filename = function() {
+      proj <- trimws(input$project_name)
+      if (proj == "") proj <- if (identical(input$data_source, "manual")) "manual_timeline" else input$sheet
+      proj <- stringr::str_replace_all(proj, "[^A-Za-z0-9_\\-]+", "_")
+      paste0(proj, "_timelinePlot.png")
+    },
+    content = function(file) {
+      shiny::req(plot_obj())
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_obj(),
+        width = input$pdf_w,
+        height = input$pdf_h,
+        dpi = 300
+      )
     }
   )
 }
