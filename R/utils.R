@@ -439,6 +439,24 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       }
     } +
     {
+      ribbon_data <- if (identical(line_geom, "step")) step_long else gliding_long
+
+      ggplot2::geom_ribbon(
+        data = ribbon_data,
+        ggplot2::aes(
+          x = Time,
+          ymax = Value,
+          ymin = -Inf,
+          fill = Measure,
+          group = interaction(Measure, .segment)
+        ),
+        alpha = 0.25,
+        colour = NA,
+        show.legend = FALSE,
+        na.rm = TRUE
+      )
+    } +
+    {
       if (identical(line_geom, "step")) {
         ggplot2::geom_step(
           data = step_long,
@@ -468,6 +486,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       legend.position = "bottom",
       plot.margin = ggplot2::margin(10, 20, 10, 10)
     ) +
+    ggplot2::scale_fill_manual(values = color_map, breaks = names(color_map), guide = "none") +
     ggplot2::scale_color_manual(values = color_map, breaks = names(color_map)) +
     ggplot2::scale_x_time(
       breaks = seq(0, 24, by = 2) * 3600,
