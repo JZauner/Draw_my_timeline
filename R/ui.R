@@ -1,3 +1,10 @@
+# Workaround for Chromium Issue 468227
+downloadButton <- function(...) {
+  tag <- shiny::downloadButton(...)
+  tag$attribs$download <- NULL
+  tag
+}
+
 app_ui <- function(logo_src, repo_url, issues_url, by_url) {
   bslib::page_fillable(
     theme = bslib::bs_theme(version = 5, bootswatch = "cosmo"),
@@ -24,7 +31,7 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
               shiny::uiOutput("sheet_ui"),
               shiny::div(
                 style = "margin-top:8px;",
-                shiny::downloadButton("download_example", "Download example Excel", style = "width:100%;")
+                downloadButton("download_example", "Download example Excel", style = "width:100%;")
               )
             ),
             shiny::conditionalPanel(
@@ -76,8 +83,8 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
           bslib::card_body(
             shiny::numericInput("pdf_w", "Width (inch)", value = 15, min = 3, step = 0.5),
             shiny::numericInput("pdf_h", "Height (inch)", value = 5, min = 2, step = 0.5),
-            shiny::downloadButton("dl_pdf", "Download plot as PDF"),
-            shiny::downloadButton("dl_png", "Download plot as PNG")
+            downloadButton("dl_pdf", "Download plot as PDF"),
+            downloadButton("dl_png", "Download plot as PNG")
           )
         ),
         bslib::card(
