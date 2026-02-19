@@ -367,6 +367,39 @@ build_step_plot_data <- function(long_df, anchor_time = NULL) {
     dplyr::ungroup()
 }
 
+# Expand step points into explicit horizontal-then-vertical corners for ribbons.
+build_step_ribbon_data <- function(step_df) {
+  step_df %>%
+    dplyr::mutate(.time_sec = as.numeric(Time)) %>%
+    dplyr::arrange(Measure, .segment, .time_sec) %>%
+    dplyr::group_by(Measure, .segment) %>%
+    dplyr::group_modify(function(df_segment, ...) {
+      if (nrow(df_segment) <= 1) {
+        return(df_segment[, c("Time", "Value", ".time_sec")])
+      }
+
+      idx <- seq_len(nrow(df_segment) - 1L)
+      corner_rows <- lapply(idx, function(i) {
+        tibble::tibble(
+          Time = c(df_segment$Time[i + 1L], df_segment$Time[i + 1L]),
+          Value = c(df_segment$Value[i], df_segment$Value[i + 1L]),
+          .time_sec = c(df_segment$.time_sec[i + 1L], df_segment$.time_sec[i + 1L])
+        )
+      })
+
+      dplyr::bind_rows(
+        tibble::tibble(
+          Time = df_segment$Time[1],
+          Value = df_segment$Value[1],
+          .time_sec = df_segment$.time_sec[1]
+        ),
+        dplyr::bind_rows(corner_rows)
+      )
+    }) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-.time_sec)
+}
+
 # Create timeline plot using user-selected colors.
 make_timeline_plot <- function(expanded_df, measure_cols,
                                color_map,
@@ -395,6 +428,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
 
   gliding_long <- build_gliding_plot_data(long, anchor_time = anchor_time)
   step_long <- build_step_plot_data(long, anchor_time = anchor_time)
+  step_ribbon_long <- build_step_ribbon_data(step_long)
   point_long <- if (".is_original_time" %in% names(long)) {
     long %>% dplyr::filter(.is_original_time)
   } else {
@@ -439,7 +473,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       }
     } +
     {
-      ribbon_data <- if (identical(line_geom, "step")) step_long else gliding_long
+      ribbon_data <- if (identical(line_geom, "step")) step_ribbon_long else gliding_long
 
       ggplot2::geom_ribbon(
         data = ribbon_data,
