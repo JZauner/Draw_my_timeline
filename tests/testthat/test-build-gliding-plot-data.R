@@ -245,3 +245,51 @@ testthat::test_that("make_timeline_plot adds a ribbon from -Inf for gliding tran
   testthat::expect_equal(p$layers[[ribbon_idx]]$aes_params$alpha, 0.25)
   testthat::expect_true(is.infinite(p$layers[[ribbon_idx]]$mapping$ymin))
 })
+
+
+testthat::test_that("build_step_ribbon_data adds horizontal corner points for jumps", {
+  step_df <- tibble::tibble(
+    Measure = "mel EDI",
+    Time = hms::as_hms(c(0, 8 * 3600, 14 * 3600)),
+    Value = c(100, 300, 150),
+    .segment = "seg_1"
+  )
+
+  ribbon_df <- build_step_ribbon_data(step_df) %>%
+    dplyr::mutate(.time_sec = as.numeric(Time))
+
+  testthat::expect_equal(
+    ribbon_df$.time_sec,
+    c(0, 8 * 3600, 8 * 3600, 14 * 3600, 14 * 3600)
+  )
+  testthat::expect_equal(ribbon_df$Value, c(100, 100, 300, 300, 150))
+})
+
+testthat::test_that("make_timeline_plot step ribbon follows hv transitions", {
+  expanded <- tibble::tibble(
+    .row_id = c(1L, 1L, 2L, 2L),
+    Support = c("1", "1", "2", "2"),
+    Time = hms::as_hms(c(0, 8 * 3600, 14 * 3600, 18 * 3600)),
+    .part = c("from", "to", "from", "to"),
+    .time_sec = as.numeric(Time),
+    `mel EDI` = c(100, 100, 300, 300)
+  )
+
+  p <- make_timeline_plot(
+    expanded_df = expanded,
+    measure_cols = "mel EDI",
+    color_map = c("mel EDI" = "#1D63DC"),
+    line_geom = "step"
+  )
+
+  ribbon_idx <- which(vapply(p$layers, function(layer) inherits(layer$geom, "GeomRibbon"), logical(1)))[1]
+  testthat::expect_true(is.finite(ribbon_idx))
+
+  ribbon_data <- p$layers[[ribbon_idx]]$data %>%
+    dplyr::mutate(.time_sec = as.numeric(Time))
+
+  jump_rows <- ribbon_data %>%
+    dplyr::filter(.time_sec == 14 * 3600)
+
+  testthat::expect_equal(jump_rows$Value, c(100, 300))
+})
