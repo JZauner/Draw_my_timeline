@@ -17,6 +17,42 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
           shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:220px; width:auto;")
         ),
         bslib::card(
+          bslib::card_header(shiny::tags$strong("About")),
+          bslib::card_body(
+            shiny::tags$p(
+              shiny::icon("user"),
+              "Created by:",
+              shiny::tags$a(
+                href = by_url,
+                target = "_blank",
+                " Johannes Zauner"
+              )
+            ),
+            shiny::tags$p("License: ",
+                          shiny::tags$a(
+                            href = "https://interoperable-europe.ec.europa.eu/licence/mit-license",
+                            target = "_blank",
+                            " MIT"
+                          )
+            ),
+            shiny::tags$p(
+              shiny::tags$a(
+                href = repo_url,
+                .noWS = "after",
+                target = "_blank",
+                shiny::icon("github"),
+                " GitHub repository"
+              ), " or ",
+              shiny::tags$a(
+                href = issues_url,
+                target = "_blank",
+                shiny::icon("bug"),
+                " Report a bug"
+              )
+            )
+          )
+        ),
+        bslib::card(
           bslib::card_header(shiny::tags$strong("Data source")),
           bslib::card_body(
             shiny::radioButtons(
@@ -87,43 +123,6 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
             downloadButton("dl_png", "Download plot as PNG")
           )
         ),
-        bslib::card(
-          bslib::card_header(shiny::tags$strong("About")),
-          bslib::card_body(
-            shiny::tags$p(
-              shiny::icon("user"),
-              "Created by:",
-                          shiny::tags$a(
-                            href = by_url,
-                            target = "_blank",
-                            " Johannes Zauner"
-                          )
-            ),
-            shiny::tags$p("License: ",
-                          shiny::tags$a(
-                            href = "https://interoperable-europe.ec.europa.eu/licence/mit-license",
-                            target = "_blank",
-                            " MIT"
-                          )
-                          ),
-            shiny::tags$p(
-              shiny::tags$a(
-                href = repo_url,
-                target = "_blank",
-                shiny::icon("github"),
-                " GitHub repository"
-              )
-            ),
-            shiny::tags$p(
-              shiny::tags$a(
-                href = issues_url,
-                target = "_blank",
-                shiny::icon("bug"),
-                " Report a bug"
-              )
-            )
-          )
-        )
       ),
       bslib::card(
         bslib::card_header(shiny::tags$strong("Timeline preview")),
@@ -131,7 +130,8 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
           shiny::tags$p(
             shiny::tags$strong("How to use:"),
             " Upload an Excel file and choose a sheet, or click 'Create custom timeline' to enter CSV data manually.",
-            " Then adjust work blocks and colors, and export the result as PDF."
+            " Then adjust work blocks and colors, and export the result as PDF.",
+            " This app runs 100% in your browser. I.e., all data remain on your device."
           ),
           shiny::plotOutput("plot", height = "560px"),
           shiny::verbatimTextOutput("status")
