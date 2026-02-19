@@ -85,14 +85,14 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
           bslib::card_body(
             shiny::tags$p(
               shiny::icon("user"),
-              "Created by:", 
+              "Created by:",
                           shiny::tags$a(
                             href = by_url,
                             target = "_blank",
                             " Johannes Zauner"
                           )
             ),
-            shiny::tags$p("License: ", 
+            shiny::tags$p("License: ",
                           shiny::tags$a(
                             href = "https://interoperable-europe.ec.europa.eu/licence/mit-license",
                             target = "_blank",
