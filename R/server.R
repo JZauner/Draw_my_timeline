@@ -20,7 +20,7 @@ app_server <- function(input, output, session) {
     shiny::showModal(startup_guide_modal(logo_src = "logo.png"))
   })
 
-  shiny::session$onFlushed(function() {
+  session$onFlushed(function() {
     shiny::showModal(startup_guide_modal(logo_src = "logo.png"))
   }, once = TRUE)
 
