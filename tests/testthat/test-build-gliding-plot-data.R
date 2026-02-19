@@ -199,3 +199,49 @@ testthat::test_that("make_timeline_plot uses .is_original_time when available", 
   point_times <- as.numeric(p$layers[[point_idx]]$data$Time)
   testthat::expect_setequal(point_times, c(6.5 * 3600, 22 * 3600))
 })
+
+testthat::test_that("make_timeline_plot adds a ribbon from -Inf for step transitions", {
+  expanded <- tibble::tibble(
+    .row_id = c(1L, 1L, 2L, 2L),
+    Support = c("1", "1", "2", "2"),
+    Time = hms::as_hms(c(0, 6 * 3600, 8 * 3600, 12 * 3600)),
+    .part = c("from", "to", "from", "to"),
+    .time_sec = as.numeric(Time),
+    `mel EDI` = c(100, 100, 200, 200)
+  )
+
+  p <- make_timeline_plot(
+    expanded_df = expanded,
+    measure_cols = "mel EDI",
+    color_map = c("mel EDI" = "#1D63DC"),
+    line_geom = "step"
+  )
+
+  ribbon_idx <- which(vapply(p$layers, function(layer) inherits(layer$geom, "GeomRibbon"), logical(1)))[1]
+  testthat::expect_true(is.finite(ribbon_idx))
+  testthat::expect_equal(p$layers[[ribbon_idx]]$aes_params$alpha, 0.25)
+  testthat::expect_true(is.infinite(p$layers[[ribbon_idx]]$mapping$ymin))
+})
+
+testthat::test_that("make_timeline_plot adds a ribbon from -Inf for gliding transitions", {
+  expanded <- tibble::tibble(
+    .row_id = c(1L, 1L, 2L, 2L),
+    Support = c("1", "1", "2", "2"),
+    Time = hms::as_hms(c(0, 6 * 3600, 8 * 3600, 12 * 3600)),
+    .part = c("from", "to", "from", "to"),
+    .time_sec = as.numeric(Time),
+    `mel EDI` = c(100, 100, 200, 200)
+  )
+
+  p <- make_timeline_plot(
+    expanded_df = expanded,
+    measure_cols = "mel EDI",
+    color_map = c("mel EDI" = "#1D63DC"),
+    line_geom = "path"
+  )
+
+  ribbon_idx <- which(vapply(p$layers, function(layer) inherits(layer$geom, "GeomRibbon"), logical(1)))[1]
+  testthat::expect_true(is.finite(ribbon_idx))
+  testthat::expect_equal(p$layers[[ribbon_idx]]$aes_params$alpha, 0.25)
+  testthat::expect_true(is.infinite(p$layers[[ribbon_idx]]$mapping$ymin))
+})
