@@ -5,6 +5,26 @@
   if (is.null(x)) y else x
 }
 
+# Convert a small markdown subset to HTML for static app copy.
+markdown_to_html <- function(text) {
+  text_chr <- paste(text, collapse = "\n")
+
+  html <- text_chr %>%
+    stringr::str_replace_all("\\*\\*(.+?)\\*\\*", "<strong>\\1</strong>") %>%
+    stringr::str_replace_all("\\[(.+?)\\]\\((https?://[^)]+)\\)", "<a href='\\2' target='_blank'>\\1</a>")
+
+  paragraph_split <- stringr::str_split(html, "\\n\\s*\\n")[[1]]
+  paragraph_split <- trimws(paragraph_split)
+  paragraph_split <- paragraph_split[nzchar(paragraph_split)]
+
+  paragraph_html <- vapply(paragraph_split, function(paragraph) {
+    inline_breaks <- stringr::str_replace_all(paragraph, "\\n", "<br>")
+    paste0("<p>", inline_breaks, "</p>")
+  }, FUN.VALUE = character(1))
+
+  shiny::HTML(paste(paragraph_html, collapse = ""))
+}
+
 # Convert common color names to hex values for HTML color inputs.
 normalize_hex_color <- function(color_name) {
   rgb_matrix <- grDevices::col2rgb(color_name)

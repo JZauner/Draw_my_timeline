@@ -49,6 +49,9 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
                 shiny::icon("bug"),
                 " Report a bug"
               )
+            ),
+            shiny::tags$p(
+              shiny::actionLink("show_startup_guide", "Open startup guide")
             )
           )
         ),
@@ -138,6 +141,39 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
         )
       )
     )
+  )
+}
+
+startup_guide_modal <- function(logo_src) {
+  brief_markdown <- paste(
+    "Integrating non-visual aspects into the design and implementation of artificial lighting solutions requires the careful consideration of both visual and non-visual stimuli at eye level **throughout the day**. This application provides an easy entry point for generating these timeline plots in a standardized way, either based on spot measurements or design requirements.",
+    "",
+    "The best way to generate timelines is to download the example Excel file (in the left sidebar), insert your own data, and upload it again. You can also copy and paste a CSV file for a custom timeline. The app lets you adjust basic settings and offers PDF or PNG export options.",
+    "",
+    "For continuous measurements, consider using [LightLogWeb](https://tscnlab-lightlogweb.share.connect.posit.cloud) for analysis.",
+    sep = "\n"
+  )
+
+  shiny::modalDialog(
+    title = shiny::tagList(
+      shiny::div(
+        style = "display:flex; align-items:center; gap:10px;",
+        shiny::tags$img(src = logo_src, alt = "Application logo", style = "height:56px; width:auto;"),
+        shiny::tags$span("Draw My Timeline")
+      )
+    ),
+    easyClose = TRUE,
+    size = "l",
+    footer = shiny::modalButton("Start exploring"),
+    shiny::tags$h4("How to use"),
+    shiny::tags$ul(
+      shiny::tags$li("Download the example Excel file from the left sidebar."),
+      shiny::tags$li("Replace the sample values with your own timeline data and upload the file."),
+      shiny::tags$li("Alternatively, use 'Create custom timeline' to paste CSV data directly."),
+      shiny::tags$li("Adjust plot settings and export your timeline as PDF or PNG.")
+    ),
+    shiny::tags$h4("What this app is for"),
+    markdown_to_html(brief_markdown)
   )
 }
 

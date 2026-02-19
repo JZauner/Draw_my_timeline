@@ -16,6 +16,14 @@ app_server <- function(input, output, session) {
     readxl::excel_sheets(xlsx_path())
   })
 
+  shiny::observeEvent(input$show_startup_guide, {
+    shiny::showModal(startup_guide_modal(logo_src = "logo.png"))
+  })
+
+  shiny::session$onFlushed(function() {
+    shiny::showModal(startup_guide_modal(logo_src = "logo.png"))
+  }, once = TRUE)
+
   output$sheet_ui <- shiny::renderUI({
     shiny::req(sheets())
     shiny::selectInput("sheet", "Project (Excel sheet)", choices = sheets(), selected = sheets()[1])
