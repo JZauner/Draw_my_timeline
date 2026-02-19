@@ -165,6 +165,8 @@ startup_guide_modal <- function(logo_src) {
     easyClose = TRUE,
     size = "l",
     footer = shiny::modalButton("Start exploring"),
+    shiny::tags$h4("What this app is for"),
+    markdown_to_html(brief_markdown),
     shiny::tags$h4("How to use"),
     shiny::tags$ul(
       shiny::tags$li("Download the example Excel file from the left sidebar."),
@@ -172,8 +174,6 @@ startup_guide_modal <- function(logo_src) {
       shiny::tags$li("Alternatively, use 'Create custom timeline' to paste CSV data directly."),
       shiny::tags$li("Adjust plot settings and export your timeline as PDF or PNG.")
     ),
-    shiny::tags$h4("What this app is for"),
-    markdown_to_html(brief_markdown)
   )
 }
 
