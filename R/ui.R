@@ -134,7 +134,7 @@ app_ui <- function(logo_src, repo_url, issues_url, by_url) {
             shiny::tags$strong("How to use:"),
             " Upload an Excel file and choose a sheet, or click 'Create custom timeline' to enter CSV data manually.",
             " Then adjust work blocks and colors, and export the result as PDF.",
-            " This app runs 100% in your browser. I.e., all data remain on your device."
+            " This app does not save or share data and uploads will not persist beyond this session."
           ),
           shiny::plotOutput("plot", height = "560px"),
           shiny::verbatimTextOutput("status")
