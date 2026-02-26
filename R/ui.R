@@ -150,7 +150,8 @@ startup_guide_modal <- function(logo_src) {
     "",
     "The best way to generate timelines is to download the example Excel file (in the left sidebar), insert your own data, and upload it again. You can also copy and paste a CSV file for a custom timeline. The app lets you adjust basic settings and offers PDF or PNG export options.",
     "",
-    "**Note:** while the app does work on mobile screens, it is best used on a screen ≥ 12\".",
+    "**Note 1: No uploaded data will be saved or visible to others. Uploads are destroyed when your current session ends.**",
+    "**Note 2:** while the app does work on mobile screens, it is best used on a screen ≥ 12\".",
     # "For continuous measurements, consider using [LightLogWeb](https://tscnlab-lightlogweb.share.connect.posit.cloud) for analysis.",
     sep = "\n"
   )
