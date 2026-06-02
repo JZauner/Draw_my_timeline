@@ -470,7 +470,7 @@ make_timeline_plot <- function(expanded_df, measure_cols,
       y = label_y,
       .groups = "drop"
     )
-
+  
   p <- ggplot2::ggplot() +
     {
       if (work1_on) {
